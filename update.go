@@ -4,33 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"radio/rutils"
-	"radio/rweb"
 )
-
-func main() {
-	radioDir := "/home/yoon/Radio/"
-
-	playlists, err := rweb.GetStuffsFromAPI("https://api-f-fstreaming.p-monier.fr/api/playlists")
-	if err != nil {
-		fmt.Println(err)
-		// getting already created playlists
-		playlists, err = rutils.GetFileSystemPlaylists(radioDir)
-		if err != nil {
-			panic("Can't find any playlist")
-		}
-	} else {
-		updatePlaylists(radioDir, playlists)
-	}
-	// fChoices := rutils.FormatUserChoice(playlists)
-	userChoice := getUserChoice(rutils.FormatUserChoice(playlists), len(playlists))
-	playlistData, err := rutils.GetplaylistData(radioDir, playlists, userChoice)
-	if err != nil {
-		panic("Can't get the playlist to play")
-	}
-
-	updateChoosenPlaylist(playlistData)
-}
 
 func updatePlaylists(radioDir string, playlists []map[string]interface{}) {
 	// test if their is an existing dir for each playlist, if not, create one
@@ -52,28 +26,17 @@ func updatePlaylists(radioDir string, playlists []map[string]interface{}) {
 	}
 }
 
-func getUserChoice(fChoices string, pLength int) string {
-	fmt.Println("Select the playlist \n" + fChoices)
-	match := false
-	var userResponse string
-	for !match {
-		fmt.Scanln(&userResponse)
-		match = rutils.ValideUserResponse(userResponse, int64(pLength))
-	}
-	return userResponse
-}
-
 func updateChoosenPlaylist(playlistData map[string]string) {
 	fmt.Println("Updating the playlist...")
 
-	musics, err := rweb.GetStuffsFromAPI("https://api-f-fstreaming.p-monier.fr/api/playlists/" + playlistData["dir"])
+	musics, err := getStuffsFromAPI("https://api-f-fstreaming.p-monier.fr/api/playlists/" + playlistData["dir"])
 	if err == nil {
 		for _, v := range musics {
 			filepath := playlistData["fullpath"] + "/" + v["name"].(string)
 			_, err := os.Stat(filepath)
 			if os.IsNotExist(err) {
 				fmt.Println("Uploading: " + v["name"].(string))
-				music, err := rweb.GetFilesFromDropbox(v["path"].(string))
+				music, err := getFilesFromDropbox(v["path"].(string))
 				if err != nil {
 					fmt.Println(err)
 				} else {

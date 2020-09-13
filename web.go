@@ -1,12 +1,12 @@
-package rweb
+package main
 
 import (
-	"net/http"
 	"encoding/json"
+	"net/http"
 )
 
-// GetStuffsFromAPI return data from api
-func GetStuffsFromAPI(url string) ([]map[string]interface{}, error) {
+// getStuffsFromAPI return data from api
+func getStuffsFromAPI(url string) ([]map[string]interface{}, error) {
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -21,8 +21,8 @@ func GetStuffsFromAPI(url string) ([]map[string]interface{}, error) {
 	return body, nil
 }
 
-// GetFilesFromDropbox return files (music file) from dropbox
-func GetFilesFromDropbox(url string) (*http.Response, error) {
+// getFilesFromDropbox return files (music file) from dropbox
+func getFilesFromDropbox(url string) (*http.Response, error) {
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -30,4 +30,3 @@ func GetFilesFromDropbox(url string) (*http.Response, error) {
 	defer res.Body.Close()
 	return res, nil
 }
-
