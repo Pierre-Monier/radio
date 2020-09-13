@@ -1,39 +1,11 @@
 package rutils
 
 import (
-	"encoding/json"
-	"net/http"
+	"fmt"
+	"io/ioutil"
+	"os"
 	"strconv"
 )
-
-// GetStuffsFromApi return data from api
-func GetStuffsFromApi(url string) ([]map[string]interface{}, error) {
-	res, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-	// parse resposne
-
-	var body []map[string]interface{}
-	err = json.NewDecoder(res.Body).Decode(&body)
-	if err != nil {
-		return nil, err
-	}
-
-	return body, nil
-}
-
-// GetFilesFromDropbox return files (music file) from dropbox
-func GetFilesFromDropbox(url string) (*http.Response, error) {
-	res, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	return res, nil
-}
 
 // FormatUserChoice return a clean playlist selection
 func FormatUserChoice(playlists []map[string]interface{}) string {
@@ -58,12 +30,33 @@ func ValideUserResponse(userResponse string, pLenght int64) bool {
 	}
 }
 
-// GetPlaylistDir return a playlist chosen dir
-func GetPlaylistDir(radioDir string, playlists []map[string]interface{}, userChoice string) string {
+// GetplaylistData return a playlist chosen dir
+func GetplaylistData(radioDir string, playlists []map[string]interface{}, userChoice string) (map[string]string, error) {
 	i, err := strconv.ParseInt(userChoice, 10, 8)
 	if err != nil {
-		return ""
-	} else {
-		return radioDir + playlists[i-1]["name"].(string)
+		return nil, err
 	}
+	playlistData := map[string]string{
+		"fullpath": radioDir + playlists[i-1]["name"].(string),
+		"dir":      playlists[i-1]["name"].(string),
+	}
+	return playlistData, nil
+}
+
+// GetFileSystemPlaylists return already downloaded playlists if can't acces api
+func GetFileSystemPlaylists(radioDir string) ([]map[string]interface{}, error) {
+	var playlists []map[string]interface{}
+	dir, err := ioutil.ReadDir(radioDir)
+	if os.IsNotExist(err) {
+		return nil, err
+	}
+	for _, v := range dir {
+		if v.IsDir() {
+			fmt.Println(v.Name())
+			playlist := make(map[string]interface{})
+			playlist["name"] = v.Name()
+			playlists = append(playlists, playlist)
+		}
+	}
+	return playlists, nil
 }

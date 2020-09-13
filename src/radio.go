@@ -3,29 +3,36 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"radio/rutils"
+	"radio/rweb"
 )
 
 func main() {
-	log.SetPrefix("radio: ")
-	log.SetFlags(0)
 	radioDir := "/home/yoon/Radio/"
 
-	playlists, err := rutils.GetStuffsFromApi("https://api-f-fstreaming.p-monier.fr/api/playlists")
-	// playlists, err := getPlaylistFromDropbox(radioDir)
+	playlists, err := rweb.GetStuffsFromAPI("https://api-f-fstreaming.p-monier.fr/api/playlists")
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		// getting already created playlists
+		playlists, err = rutils.GetFileSystemPlaylists(radioDir)
+		if err != nil {
+			panic("Can't find any playlist")
+		}
+	} else {
+		updatePlaylists(radioDir, playlists)
 	}
-	createDirForPlaylist(radioDir, playlists)
-	fChoices := rutils.FormatUserChoice(playlists)
-	userChoice := getUserChoice(fChoices, len(playlists))
-	playlistDir := rutils.GetPlaylistDir(radioDir, playlists, userChoice)
-	updateChoosenPlaylist(playlistDir, userChoice)
+	// fChoices := rutils.FormatUserChoice(playlists)
+	userChoice := getUserChoice(rutils.FormatUserChoice(playlists), len(playlists))
+	playlistData, err := rutils.GetplaylistData(radioDir, playlists, userChoice)
+	if err != nil {
+		panic("Can't get the playlist to play")
+	}
+
+	updateChoosenPlaylist(playlistData)
 }
 
-func createDirForPlaylist(radioDir string, playlists []map[string]interface{}) {
+func updatePlaylists(radioDir string, playlists []map[string]interface{}) {
 	// test if their is an existing dir for each playlist, if not, create one
 	for _, v := range playlists {
 		filepath := radioDir + v["name"].(string)
@@ -56,30 +63,33 @@ func getUserChoice(fChoices string, pLength int) string {
 	return userResponse
 }
 
-func updateChoosenPlaylist(playlistDir string, userChoice string) error {
+func updateChoosenPlaylist(playlistData map[string]string) {
 	fmt.Println("Updating the playlist...")
 
-	musics, err := rutils.GetStuffsFromApi("https://api-f-fstreaming.p-monier.fr/api/playlists/" + userChoice)
+	musics, err := rweb.GetStuffsFromAPI("https://api-f-fstreaming.p-monier.fr/api/playlists/" + playlistData["dir"])
 	if err == nil {
 		for _, v := range musics {
-			filepath := playlistDir + "/" + v["name"].(string)
+			filepath := playlistData["fullpath"] + "/" + v["name"].(string)
 			_, err := os.Stat(filepath)
 			if os.IsNotExist(err) {
 				fmt.Println("Uploading: " + v["name"].(string))
-				music, err := rutils.GetFilesFromDropbox(v["path"].(string))
+				music, err := rweb.GetFilesFromDropbox(v["path"].(string))
 				if err != nil {
 					fmt.Println(err)
+				} else {
+					// Create the file
+					out, err := os.Create(filepath)
+					if err != nil {
+						fmt.Println(err)
+					}
+					// write the body resp into it
+					_, err = io.Copy(out, music.Body)
+					if err != nil {
+						fmt.Println(err)
+					}
 				}
-				// Create the file
-				out, err := os.Create(filepath)
-				if err != nil {
-					fmt.Println(err)
-				}
-				// write the body resp into it
-				_, err = io.Copy(out, music.Body)
 			}
 		}
 		fmt.Println("Updated")
 	}
-	return err
 }
