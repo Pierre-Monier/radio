@@ -27,6 +27,5 @@ func getFilesFromDropbox(url string) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
 	return res, nil
 }

@@ -1,29 +1,15 @@
 package main
 
-import (
-	"fmt"
-)
-
 func main() {
 	radioDir := "/home/yoon/Radio/"
 
-	playlists, err := getStuffsFromAPI("https://api-f-fstreaming.p-monier.fr/api/playlists")
+	playlists, err := update(radioDir)
 	if err != nil {
-		fmt.Println(err)
-		// getting already created playlists
-		playlists, err = getFileSystemPlaylists(radioDir)
-		if err != nil {
-			panic("Can't find any playlist")
-		}
-	} else {
-		updatePlaylists(radioDir, playlists)
+		panic("Can't find any playlist")
 	}
-	// fChoices := formatUserChoice(playlists)
-	userChoice := getUserChoice(formatUserChoice(playlists), len(playlists))
-	playlistData, err := getplaylistData(radioDir, playlists, userChoice)
+	userChoice, err := getUsefullUserChoice(playlists)
 	if err != nil {
-		panic("Can't get the playlist to play")
+		panic("Can't get chosen playlist")
 	}
-
-	updateChoosenPlaylist(playlistData)
+	start(radioDir + userChoice)
 }
